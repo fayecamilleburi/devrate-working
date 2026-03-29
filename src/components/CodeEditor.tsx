@@ -5,9 +5,7 @@ import * as monaco from "monaco-editor";
 import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
 
 interface CodeEditorProps {
-    onKeystroke: (type: "insert" | "delete", length: number, lineNumber?: number) => void;
-    onPaste: (length: number) => void;
-    onFocusLoss: () => void;
+    onKeystroke: (type: "insert" | "delete" | "paste", length: number, lineNumber?: number) => void;
     onEditorReady: (initialLength: number) => void;
     language: Language;
     onLanguageChange: (lang: Language) => void;
@@ -51,8 +49,8 @@ const FILE_NAMES: Record<Language, string> = {
     cpp: "solution.cpp",
 };
 
-export function CodeEditor({ onKeystroke, onPaste, onFocusLoss, onEditorReady, language, onLanguageChange}: CodeEditorProps) {
-    // Ref to store the editor instance for later use if needed (Strongly typed ref instead of `any)
+export function CodeEditor({ onKeystroke, onEditorReady, language, onLanguageChange}: CodeEditorProps) {
+    // Ref to store the editor instance for later use if needed (Strongly typed ref instead of `any`)
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
     const handleMount: OnMount = useCallback((editor) => {
@@ -73,18 +71,14 @@ export function CodeEditor({ onKeystroke, onPaste, onFocusLoss, onEditorReady, l
 
                 if (insertedLen > 0) {
                     if (insertedLen > 5 || change.text.includes("\n")) {
-                        onPaste(insertedLen);
+                        onKeystroke("paste", insertedLen, line);
                     } else {
                         onKeystroke("insert", insertedLen, line);
                     }
                 }
             }
         });
-
-        editor.onDidBlurEditorWidget(() => {
-            onFocusLoss();
-        });
-    }, [onKeystroke, onPaste, onFocusLoss, onEditorReady, language]);
+    }, [onKeystroke, onEditorReady, language]);
 
     return (
         <div className="h-full w-full rounded-lg border border-border overflow-hidden bg-card flex flex-col">

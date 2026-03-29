@@ -7,13 +7,12 @@ import { Shield, Activity } from 'lucide-react';
 import { type Language } from '@/components/LanguageSwitcher';
 
 const Landing = () => {
-    const { metrics, startSession, recordKeystroke, recordPaste, recordFocusLoss, recordCompile} = useCodeMetrics();
+    const { metrics, startSession, recordKeystroke } = useCodeMetrics();
     const [language, setLanguage] = useState<Language>('java');
     const [output, setOutput] = useState("");
     const [showMetrics] = useState(true);
 
     const handleCompile = () => {
-        recordCompile();
         setOutput(`[${new Date().toLocaleTimeString()}] Code execution simulated. \n> Program compiled successfully.\n> Output:\nHello, World!`);
     };
 
@@ -45,8 +44,6 @@ const Landing = () => {
                     <div className="flex-1 min-h-0">
                         <CodeEditor 
                             onKeystroke={recordKeystroke}
-                            onPaste={recordPaste}
-                            onFocusLoss={recordFocusLoss}
                             onEditorReady={startSession}
                             language={language}
                             onLanguageChange={setLanguage}
