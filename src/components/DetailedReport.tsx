@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { 
     Fingerprint, Activity, ChevronDown, ChevronUp, 
     AlertCircle, ShieldCheck, Cpu, CheckCircle2, ShieldAlert, Info
@@ -6,10 +6,9 @@ import {
 
 interface DetailedReportProps {
     metrics: {
-        keystrokes: number;
-        paste_events: number;
-        focus_losses: number;
-        total_time: number;
+        typingCadence: number;
+        burstPauseRatio: number;
+        revisionDensity: number;
     };
     results: any;
 }
@@ -53,7 +52,7 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
             </div>
 
             {/* --- PILLAR 1: NEURAL ENGINE --- */}
-            <section className={`p-8 border rounded-[2.5rem] space-y-8 ${isCodeOrganic ? 'bg-green-500/[0.02] border-green-500/10' : 'bg-red-500/[0.02] border-red-500/10'}`}>
+            <section className={`p-8 border rounded-[2.5rem] space-y-8 ${isCodeOrganic ? 'bg-green-500/2 border-green-500/10' : 'bg-red-500/2 border-red-500/10'}`}>
                 <div className="flex items-center gap-3 border-l-4 border-primary pl-4">
                     <Cpu className="h-6 w-6 text-primary" />
                     <div>
@@ -119,10 +118,9 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     <div className="p-8 bg-secondary/5 rounded-3xl border border-border/50 grid grid-cols-2 gap-4 shadow-inner">
-                        <StatBox label="Keystrokes" value={metrics.keystrokes} />
-                        <StatBox label="Paste Stream" value={metrics.paste_events} color={metrics.paste_events > 0 ? "text-amber-500" : "text-green-500"} />
-                        <StatBox label="Focus Jumps" value={metrics.focus_losses} color={metrics.focus_losses > 3 ? "text-red-500" : ""} />
-                        <StatBox label="Time Elapsed" value={`${metrics.total_time?.toFixed(1)}s`} />
+                        <StatBox label="Typing Cadence" value={`${metrics.typingCadence} keys/min`} />
+                        <StatBox label="Burst/Pause Ratio" value={metrics.burstPauseRatio} />
+                        <StatBox label="Revision Density" value={metrics.revisionDensity} />
                     </div>
 
                     <div className="space-y-3">

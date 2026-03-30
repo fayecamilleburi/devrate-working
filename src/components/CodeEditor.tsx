@@ -6,9 +6,7 @@ import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
 
 interface CodeEditorProps {
     onChange: (value: string) => void;
-    onKeystroke: (type: "insert" | "delete", length: number) => void;
-    onPaste: (length: number) => void;
-    onFocusLoss: () => void;
+    onKeystroke: (type: "insert" | "delete" | "paste", length: number) => void;
     onEditorReady: (initialLength: number) => void;
     language: Language;
     onLanguageChange: (lang: Language) => void;
@@ -20,7 +18,7 @@ const DEFAULT_CODE: Record<Language, string> = {
     cpp: "#include <iostream>\nint main() {\n    std::cout << \"Hello C++\";\n    return 0;\n}"
 };
 
-export function CodeEditor({ onChange, onKeystroke, onPaste, onFocusLoss, onEditorReady, language, onLanguageChange }: CodeEditorProps) {
+export function CodeEditor({ onChange, onKeystroke, onEditorReady, language, onLanguageChange }: CodeEditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
 
     const handleMount: OnMount = (editor) => {
@@ -36,7 +34,7 @@ export function CodeEditor({ onChange, onKeystroke, onPaste, onFocusLoss, onEdit
 
             event.changes.forEach(change => {
                 if (change.text.length > 5 || change.text.includes("\n")) {
-                    onPaste(change.text.length);
+                    onKeystroke("paste", change.text.length);
                 } else if (change.text.length > 0) {
                     onKeystroke("insert", change.text.length);
                 } else if (change.rangeLength > 0) {
@@ -44,8 +42,6 @@ export function CodeEditor({ onChange, onKeystroke, onPaste, onFocusLoss, onEdit
                 }
             });
         });
-
-        editor.onDidBlurEditorWidget(() => onFocusLoss());
     };
 
     return (
