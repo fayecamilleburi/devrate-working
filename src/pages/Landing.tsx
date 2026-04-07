@@ -50,28 +50,34 @@ const Landing = () => {
     };
 
     const handleFinalSubmit = async () => {
-        setIsAnalyzing(true);
-        try {
-            const response = await fetch("http://127.0.0.1:8000/analyze", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    code: code,
-                    telemetry: metrics
-                }),
-            });
+    setIsAnalyzing(true);
+    try {
+        const response = await fetch("http://127.0.0.1:8000/analyze", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                code: code,
+                language: language, // <--- THIS WAS MISSING
+                telemetry: metrics
+            }),
+        });
 
-            const data = await response.json();
-            console.log("Full API Response:", data);
-            setAnalysisResult(data);
-            setOutput(`[${new Date().toLocaleTimeString()}] Analysis Complete: ${data.verdict}`);
-        } catch (error) {
-            console.error("Connection Error:", error);
-            setOutput(`[ERROR] Could not connect to Python API. Is uvicorn running?`);
-        } finally {
-            setIsAnalyzing(false);
+        const data = await response.json();
+        
+        if (!response.ok) {
+            // This helps you see EXACTLY which field failed validation
+            console.error("Validation Error:", data.detail);
+            return;
         }
-    };
+
+        setAnalysisResult(data);
+        setOutput(`[${new Date().toLocaleTimeString()}] Analysis Complete: ${data.verdict}`);
+    } catch (error) {
+        console.error("Connection Error:", error);
+    } finally {
+        setIsAnalyzing(false);
+    }
+};
 
     return (
         <div className="flex flex-col h-screen bg-background text-foreground">

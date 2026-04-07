@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { 
     Fingerprint, Activity, ChevronDown, ChevronUp, 
-    AlertCircle, ShieldCheck, Cpu, CheckCircle2, ShieldAlert, Info
+    AlertCircle, Cpu, CheckCircle2, ShieldAlert, Info
 } from 'lucide-react';
 
 interface DetailedReportProps {
@@ -14,30 +14,38 @@ interface DetailedReportProps {
 }
 
 export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
-    const submissionTime = results?.timestamp || new Date().toLocaleString();
-    
-    // --- HIGH PRECISION DATA ---
-    const rawAiScore = results?.ai_analysis?.confidence || 0; 
-    const aiPercent = (rawAiScore * 100).toFixed(3); 
-    const humanPercent = (100 - (rawAiScore * 100)).toFixed(3);
-    
+    // Added results?.ai_confidence_score to the list
+    const rawValue = 
+        results?.ai_confidence_score ?? 
+        0;
+
+    const numericScore = typeof rawValue === 'string' ? parseFloat(rawValue) : rawValue;
+
+    // Calculate percentages
+    const aiPercentNumeric = numericScore * 100;
+    const aiPercent = aiPercentNumeric.toFixed(2); 
+    const humanPercent = (100 - aiPercentNumeric).toFixed(2);
+    const isCodeOrganic = numericScore < 0.5;
+
+    // Extract behavior flags safely
     const behaviorFlags = results?.behavior_analysis?.flags || [];
-    const isCodeOrganic = rawAiScore < 0.1; 
+
+   
 
     return (
-        <div className="mt-8 p-10 border border-border bg-card rounded-3xl shadow-2xl space-y-12 animate-in fade-in slide-in-from-bottom-5 duration-1000">
+        <div className="relative mt-8 p-10 border border-border bg-card rounded-3xl shadow-2xl space-y-12">
             
-            {/* --- HEADER --- */}
+            {/* HEADER */}
             <div className="flex flex-col md:flex-row justify-between items-start border-b border-border pb-8 gap-4">
                 <div className="flex gap-4">
                     <div className={`p-3 rounded-xl shadow-inner ${isCodeOrganic ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'}`}>
                         {isCodeOrganic ? <CheckCircle2 className="h-8 w-8" /> : <Fingerprint className="h-8 w-8" />}
                     </div>
                     <div>
-                        <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">Forensic Analysis Report</h2>
+                        <h2 className="text-3xl font-black tracking-tighter uppercase text-foreground">Detailed Analysis Report</h2>
                         <p className="text-sm text-muted-foreground font-mono flex items-center gap-2">
                             <span className={`h-2 w-2 rounded-full animate-pulse ${isCodeOrganic ? 'bg-green-500' : 'bg-red-500'}`} />
-                            TIMESTAMP: {submissionTime}
+                            TIMESTAMP: {new Date().toLocaleString()}
                         </p>
                     </div>
                 </div>
@@ -47,30 +55,35 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
                     }`}>
                         {results.verdict}
                     </div>
-                    <p className="text-[10px] font-bold opacity-40 uppercase tracking-[0.2em]">Resolution: 0.001%</p>
+                  
                 </div>
             </div>
 
-            {/* --- PILLAR 1: NEURAL ENGINE --- */}
-            <section className={`p-8 border rounded-[2.5rem] space-y-8 ${isCodeOrganic ? 'bg-green-500/2 border-green-500/10' : 'bg-red-500/2 border-red-500/10'}`}>
+           
+            {/* PILLAR 1: Using the AI Code Detection Model */}
+            <section className={`p-8 border rounded-[2.5rem] space-y-8 ${isCodeOrganic ? 'bg-green-500/5 border-green-500/10' : 'bg-red-500/5 border-red-500/10'}`}>
                 <div className="flex items-center gap-3 border-l-4 border-primary pl-4">
                     <Cpu className="h-6 w-6 text-primary" />
                     <div>
-                        <h3 className="text-xl font-bold tracking-tight">Pillar 1: Structural AI Analysis</h3>
-                        <p className="text-[10px] text-muted-foreground font-black uppercase">Neural Inference Output</p>
+                        <h3 className="text-xl font-bold tracking-tight">Pillar 1: AI Analysis</h3>
+                        <p className="text-[10px] text-muted-foreground font-black uppercase">DevRate Model Output</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-center">
+                    {/* THE GAUGE */}
                     <div className="relative h-60 w-60 mx-auto lg:mx-0">
-                        <div className="h-full w-full rounded-full flex items-center justify-center shadow-xl"
-                            style={{ background: `conic-gradient(#22c55e 0% ${humanPercent}%, #ef4444 ${humanPercent}% 100%)` }}>
+                        <div className="h-full w-full rounded-full flex items-center justify-center shadow-xl transition-all duration-1000"
+                            style={{ 
+                                background: `conic-gradient(#ef4444 0% ${aiPercent}%, #22c55e ${aiPercent}% 100%)` 
+                            }}>
                             <div className="h-44 w-44 bg-card rounded-full flex flex-col items-center justify-center border border-border/50 shadow-inner">
-                                <span className={`text-4xl font-black tracking-tighter ${isCodeOrganic ? 'text-black-500' : 'text-black-500'}`}>
-                                    {isCodeOrganic ? humanPercent : aiPercent}%
+                                {/* AI SCORE HERE TO VERIFY AGAINST TERMINAL */}
+                                <span className="text-4xl font-black tracking-tighter text-foreground">
+                                    {aiPercent}%
                                 </span>
-                                <span className="text-[9px] font-black opacity-50 uppercase tracking-widest mt-1 text-center px-4">
-                                    {isCodeOrganic ? "Human Probability" : "AI Probability"}
+                                <span className="text-[9px] font-black opacity-50 uppercase tracking-widest mt-1 text-center px-4 text-red-500">
+                                    AI Probability
                                 </span>
                             </div>
                         </div>
@@ -78,32 +91,30 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
 
                     <div className="lg:col-span-2 space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <DataCard label="Organic Coefficient" value={humanPercent} color="text-green-500" />
-                            <DataCard label="Neural Match (AI)" value={aiPercent} color="text-red-500" />
+                            <DataCard label="AI Probability" value={aiPercent} color="text-red-500" />
+                            <DataCard label="Human Factor" value={humanPercent} color="text-green-500" />
                         </div>
 
                         <div className="p-6 bg-secondary/10 rounded-2xl border border-border/50">
-                             <h4 className="text-[10px] font-black uppercase text-muted-foreground mb-4 tracking-widest flex items-center gap-2">
+                            <h4 className="text-[10px] font-black uppercase text-muted-foreground mb-4 tracking-widest flex items-center gap-2">
                                 <ShieldAlert className="h-3 w-3" /> Technical Evidence Log
-                             </h4>
-                             {isCodeOrganic ? (
-                                <div className="flex items-start gap-4 text-green-800/80">
-                                    <ShieldCheck className="h-6 w-6 shrink-0 mt-1" />
-                                    <div className="space-y-1">
-                                        <p className="text-sm italic font-medium">No artificial markers identified.</p>
-                                        <p className="text-[11px] opacity-70 leading-relaxed">
-                                            Model detected high structural entropy (Confidence: {(rawAiScore * 100).toFixed(6)}%). 
-                                            The stylistic variation matches organic human behavior.
+                            </h4>
+                            
+                            <div className="space-y-3">
+                                {/* Check if we have indicators, otherwise show the fallback */}
+                                {results?.ai_analysis?.top_indicators?.length > 0 ? (
+                                    results.ai_analysis.top_indicators.map((item: any, i: number) => (
+                                        <IndicatorItem key={i} label={item.token} score={item.score} />
+                                    ))
+                                ) : (
+                                    <div className="flex items-start gap-4 text-muted-foreground">
+                                        <Info className="h-5 w-5 mt-1" />
+                                        <p className="text-xs italic">
+                                            Structural Analysis indicates {aiPercent}% likelihood of synthetic origin based on transformer-based token sequencing.
                                         </p>
                                     </div>
-                                </div>
-                             ) : (
-                                <div className="space-y-3">
-                                    {results?.ai_analysis?.top_indicators?.map((item: any, i: number) => (
-                                        <IndicatorItem key={i} label={item.token} score={item.score} />
-                                    ))}
-                                </div>
-                             )}
+                                )}
+                            </div>
                         </div>
                     </div>
                 </div>
