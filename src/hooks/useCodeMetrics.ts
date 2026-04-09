@@ -35,6 +35,7 @@ export function useCodeMetrics() {
 
     // Interval management
     const intervalId = useRef<ReturnType<typeof setInterval> | null>(null);
+    const sessionActive = useRef(false);
 
     useEffect(() => {
         // Initialize once on mount
@@ -83,11 +84,23 @@ export function useCodeMetrics() {
         burstCount.current = 0;
         pauseCount.current = 0;
         lastKeystrokeTime.current = Date.now();
+        sessionActive.current = true;
 
         intervalId.current = setInterval(computeMetrics, 500);
     }, [computeMetrics]);
 
+    const stopSession = useCallback(() => {
+        if (intervalId.current) {
+            clearInterval(intervalId.current);
+            intervalId.current = null;
+        }
+        sessionActive.current = false;
+        computeMetrics();
+    }, [computeMetrics]);
+
     const recordKeystroke = useCallback((type: "insert" | "delete" | "paste", length: number, lineNumber?: number) => {
+        if (!sessionActive.current) return;
+
         const now = Date.now();
 
         // Detect pauses >3s
@@ -112,6 +125,7 @@ export function useCodeMetrics() {
     return {
         metrics,
         startSession,
+        stopSession,
         recordKeystroke
     };
 }
