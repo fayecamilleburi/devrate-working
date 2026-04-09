@@ -6,7 +6,7 @@ import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
 
 interface CodeEditorProps {
     onChange: (value: string) => void;
-    onKeystroke: (type: "insert" | "delete" | "paste", length: number) => void;
+    onKeystroke: (type: "insert" | "delete" | "paste", length: number, lineNumber?: number) => void;
     onEditorReady: (initialLength: number) => void;
     language: Language;
     onLanguageChange: (lang: Language) => void;
@@ -20,6 +20,7 @@ const DEFAULT_CODE: Record<Language, string> = {
 
 export function CodeEditor({ onChange, onKeystroke, onEditorReady, language, onLanguageChange }: CodeEditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    const isPastePending = useRef(false);
 
     const handleMount: OnMount = (editor) => {
         editorRef.current = editor;
@@ -28,17 +29,24 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, language, onL
         onChange(editor.getValue());
         onEditorReady(editor.getValue().length);
 
+        editor.onDidPaste(() => {
+            isPastePending.current = true;
+        });
+
         editor.onDidChangeModelContent((event) => {
             const currentCode = editor.getValue();
             onChange(currentCode); // Push updated code to Landing.tsx
 
             event.changes.forEach(change => {
-                if (change.text.length > 5 || change.text.includes("\n")) {
-                    onKeystroke("paste", change.text.length);
-                } else if (change.text.length > 0) {
-                    onKeystroke("insert", change.text.length);
+                if (change.text.length > 0) {
+                    if (isPastePending.current) {
+                        onKeystroke("paste", change.text.length, change.range.startLineNumber);
+                        isPastePending.current = false;
+                    } else {
+                        onKeystroke("insert", change.text.length, change.range.startLineNumber);
+                    }
                 } else if (change.rangeLength > 0) {
-                    onKeystroke("delete", change.rangeLength);
+                    onKeystroke("delete", change.rangeLength, change.range.startLineNumber);
                 }
             });
         });

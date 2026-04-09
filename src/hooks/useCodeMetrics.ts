@@ -4,6 +4,8 @@ export interface CodeMetrics {
     typingCadence: number;          // avg keystrokes per minute
     burstPauseRatio: number;        // bursts / pauses
     revisionDensity: number;        // revisits / total edits
+    pasteCount: number;             // number of paste events
+    totalPastedChars: number;       // total characters pasted
 }
 
 interface KeystrokeEvent {
@@ -18,6 +20,8 @@ export function useCodeMetrics() {
         typingCadence: 0,
         burstPauseRatio: 0,
         revisionDensity: 0,
+        pasteCount: 0,
+        totalPastedChars: 0,
     });
 
     const sessionStart = useRef<number>(0);
@@ -32,6 +36,8 @@ export function useCodeMetrics() {
     // For burst/pause ratio
     const burstCount = useRef(0);
     const pauseCount = useRef(0);
+    const pasteEvent = useRef(0);
+    const totalPastedChars = useRef(0);
 
     // Interval management
     const intervalId = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -70,6 +76,8 @@ export function useCodeMetrics() {
             typingCadence: Math.round(cadence * 10) / 10,
             burstPauseRatio: Math.round(burstPause * 100) / 100,
             revisionDensity: Math.round(revDensity * 100) / 100,
+            pasteCount: pasteEvent.current,
+            totalPastedChars: totalPastedChars.current,
         });
     }, []);
 
@@ -83,6 +91,8 @@ export function useCodeMetrics() {
         revisitedLineEdits.current = 0;
         burstCount.current = 0;
         pauseCount.current = 0;
+        pasteEvent.current = 0;
+        totalPastedChars.current = 0;
         lastKeystrokeTime.current = Date.now();
         sessionActive.current = true;
 
@@ -119,6 +129,12 @@ export function useCodeMetrics() {
             const count = lineEditCounts.current.get(lineNumber) || 0;
             if (count > 0) revisitedLineEdits.current++;
             lineEditCounts.current.set(lineNumber, count + 1);
+        }
+
+        // Count paste events
+        if (type === "paste") {
+            pasteEvent.current++;
+            totalPastedChars.current += length;
         }
     }, []);
 
