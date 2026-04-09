@@ -9,7 +9,7 @@ import { DetailedReport } from '@/components/DetailedReport';
 
 
 const Landing = () => {
-    const { metrics, startSession, recordKeystroke } = useCodeMetrics();
+    const { metrics, startSession, stopSession, recordKeystroke } = useCodeMetrics();
     const [language, setLanguage] = useState<Language>('java');
     const [output, setOutput] = useState("");
     const reportRef = useRef<HTMLDivElement>(null);
@@ -50,8 +50,9 @@ const Landing = () => {
     };
 
     const handleFinalSubmit = async () => {
-    setIsAnalyzing(true);
-    try {
+        stopSession();
+        setIsAnalyzing(true);
+        try {
         const response = await fetch("http://127.0.0.1:8000/analyze", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
