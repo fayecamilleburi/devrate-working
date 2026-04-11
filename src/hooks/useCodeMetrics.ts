@@ -1,18 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 export interface CodeMetrics {
-    typingCadence: number;          // avg keystrokes per minute
-    burstPauseRatio: number;        // bursts / pauses
-    revisionDensity: number;        // revisits / total edits
-    pasteCount: number;             // number of paste events
-    totalPastedChars: number;       // total characters pasted
-}
-
-interface KeystrokeEvent {
-    timestamp: number;
-    type: "insert" | "delete" | "paste";
-    length: number;
-    lineNumber?: number;
+    typingCadence: number;        // Frequency of manual interaction (Events/Min)
+    burstPauseRatio: number;      // Coding flow vs. Thinking/Researching time
+    revisionDensity: number;      // How much the user "fumbles" or refactors
+    pasteCount: number;           // Number of times external code was imported
+    totalPastedChars: number;     // Total volume of code not hand-typed
+    originalityIndex: number;     // % of code written manually
 }
 
 export function useCodeMetrics() {
@@ -22,126 +16,152 @@ export function useCodeMetrics() {
         revisionDensity: 0,
         pasteCount: 0,
         totalPastedChars: 0,
+        originalityIndex: 1, // Default to 100% original
     });
 
-    const sessionStart = useRef<number>(0);
-    const keystrokeLog = useRef<KeystrokeEvent[]>([]);
+    // --- Session Metadata ---
     const lastKeystrokeTime = useRef<number>(0);
+    const sessionActive = useRef(false);
 
-    // For revision density
+    // --- Time-Gap Correction: Track accumulated active milliseconds
+    const totalActiveMs = useRef<number>(0);
+    const idleThresholdMs = 300000; // 5 minutes
+    
+    // --- Behavioral Counters ---
+    const eventCount = useRef(0);         // Total manual actions (inserts/deletes)
+    const burstCount = useRef(0);         // Actions < 3s apart
+    const pauseCount = useRef(0);         // Actions > 3s apart
+    
+    // --- Revision Tracking ---
     const lineEditCounts = useRef<Map<number, number>>(new Map());
     const totalLineEdits = useRef(0);
     const revisitedLineEdits = useRef(0);
 
-    // For burst/pause ratio
-    const burstCount = useRef(0);
-    const pauseCount = useRef(0);
-    const pasteEvent = useRef(0);
+    // --- Provenance Tracking ---
+    const pasteEventCount = useRef(0);
     const totalPastedChars = useRef(0);
 
-    // Interval management
-    const intervalId = useRef<ReturnType<typeof setInterval> | null>(null);
-    const sessionActive = useRef(false);
+    /**
+     * Calculates the behavioral story based on current state.
+     * @param currentDocLength - The total character count currently in the editor.
+     */
+    const computeMetrics = useCallback((currentDocLength: number = 0) => {
+        if (!sessionActive.current) return;
 
-    useEffect(() => {
-        // Initialize once on mount
-        sessionStart.current = Date.now();
-        lastKeystrokeTime.current = Date.now();
+        // const now = Date.now();
+        // const sessionMin = (now - sessionStart.current) / 60000 || 1;
+        // Use accrued active time, ensuring at least 1 second to avoid division by zero
+        const activeMin = Math.max(totalActiveMs.current, 1000) / 60000;
 
-        return () => {
-            if (intervalId.current) clearInterval(intervalId.current);
-        };
-    }, []);
+        // 1. Cadence: Measures interaction frequency without being inflated by paste volume.
+        const cadence = eventCount.current / activeMin;
 
-    const computeMetrics = useCallback(() => {
-        const now = Date.now();
-        const sessionSec = (now - sessionStart.current) / 1000;
-        const sessionMin = sessionSec / 60 || 1;
-
-        // Typing cadence = total keystrokes per minute
-        const totalKeystrokes = keystrokeLog.current.length;
-        const cadence = totalKeystrokes / sessionMin;
-
-        // Burst-Pause Ratio = bursts / pauses
-        const burstPause = pauseCount.current > 0
-            ? burstCount.current / pauseCount.current
+        // 2. Burst/Pause Ratio: > 2.0 suggests "Flow", < 1.0 suggests high cognitive load.
+        const burstPause = pauseCount.current > 0 
+            ? burstCount.current / pauseCount.current 
             : burstCount.current;
 
-        // Revision density = revisits / total edits
+        // 3. Revision Density: % of work spent on previously touched lines.
         const revDensity = totalLineEdits.current > 0
             ? revisitedLineEdits.current / totalLineEdits.current
             : 0;
+
+        // --- Logic: Effective Pasted Characters ---
+        // Clamps the "pasted" pool to the actual size of the document.
+        const effectivePasted = Math.min(totalPastedChars.current, currentDocLength);
+        
+        // 4. Originality Index
+        const originality = currentDocLength > 0 
+            ? Math.max(0, (currentDocLength - effectivePasted) / currentDocLength)
+            : 1;
 
         setMetrics({
             typingCadence: Math.round(cadence * 10) / 10,
             burstPauseRatio: Math.round(burstPause * 100) / 100,
             revisionDensity: Math.round(revDensity * 100) / 100,
-            pasteCount: pasteEvent.current,
+            pasteCount: pasteEventCount.current,
             totalPastedChars: totalPastedChars.current,
+            originalityIndex: Math.round(originality * 100) / 100,
         });
     }, []);
 
-    const startSession = useCallback(() => {
-        if (intervalId.current) clearInterval(intervalId.current);
-
-        sessionStart.current = Date.now();
-        keystrokeLog.current = [];
-        lineEditCounts.current = new Map();
-        totalLineEdits.current = 0;
-        revisitedLineEdits.current = 0;
-        burstCount.current = 0;
-        pauseCount.current = 0;
-        pasteEvent.current = 0;
-        totalPastedChars.current = 0;
-        lastKeystrokeTime.current = Date.now();
-        sessionActive.current = true;
-
-        intervalId.current = setInterval(computeMetrics, 500);
-    }, [computeMetrics]);
-
-    const stopSession = useCallback(() => {
-        if (intervalId.current) {
-            clearInterval(intervalId.current);
-            intervalId.current = null;
-        }
-        sessionActive.current = false;
-        computeMetrics();
-    }, [computeMetrics]);
-
-    const recordKeystroke = useCallback((type: "insert" | "delete" | "paste", length: number, lineNumber?: number) => {
+    /**
+     * Records an atomic editor event and interprets user behavior.
+     */
+    const recordKeystroke = useCallback((
+        type: "insert" | "delete" | "paste", 
+        length: number, 
+        lineNumber?: number
+    ) => {
         if (!sessionActive.current) return;
 
         const now = Date.now();
+        const gap = now - lastKeystrokeTime.current;
 
-        // Detect pauses >3s
-        if (now - lastKeystrokeTime.current > 3000) {
+        // --- Logic: Time-Gap Correction ---
+        // Only add to active time if the gap is within the reasonable threshold
+        if (gap < idleThresholdMs) {
+            totalActiveMs.current += gap;
+        }
+        
+        // Track interaction events (One paste = 1 event, One character = 1 event)
+        eventCount.current++;
+
+        // --- Logic: Flow ---
+        // We use a 3-second threshold to define a "thought break"
+        if (gap > 3000) {
             pauseCount.current++;
         } else {
             burstCount.current++;
         }
         lastKeystrokeTime.current = now;
 
-        keystrokeLog.current.push({ timestamp: now, type, length, lineNumber });
-        
-        // Track line edits
+        // --- Logic: Revision ---
         if (lineNumber !== undefined) {
             totalLineEdits.current++;
-            const count = lineEditCounts.current.get(lineNumber) || 0;
-            if (count > 0) revisitedLineEdits.current++;
-            lineEditCounts.current.set(lineNumber, count + 1);
+            const existingCount = lineEditCounts.current.get(lineNumber) || 0;
+            
+            // If the line has been touched before, this is a revision/refinement
+            if (existingCount > 0) revisitedLineEdits.current++;
+            lineEditCounts.current.set(lineNumber, existingCount + 1);
         }
 
-        // Count paste events
+        // --- Logic: Provenance ---
         if (type === "paste") {
-            pasteEvent.current++;
+            pasteEventCount.current++;
             totalPastedChars.current += length;
+        }
+
+        // If user deletes, we reduce the 'non-original' character pool.
+        if (type === "delete" && totalPastedChars.current > 0) {
+            totalPastedChars.current = Math.max(0, totalPastedChars.current - length);
         }
     }, []);
 
-    return {
-        metrics,
-        startSession,
-        stopSession,
-        recordKeystroke
+    const startSession = useCallback(() => {
+        lastKeystrokeTime.current = Date.now();
+        sessionActive.current = true;
+        
+        // Reset internal refs for a clean session
+        eventCount.current = 0;
+        burstCount.current = 0;
+        pauseCount.current = 0;
+        totalLineEdits.current = 0;
+        revisitedLineEdits.current = 0;
+        pasteEventCount.current = 0;
+        totalPastedChars.current = 0;
+        lineEditCounts.current.clear();
+    }, []);
+
+    const stopSession = useCallback(() => {
+        sessionActive.current = false;
+    }, []);
+
+    return { 
+        metrics, 
+        startSession, 
+        stopSession, 
+        recordKeystroke, 
+        computeMetrics 
     };
 }

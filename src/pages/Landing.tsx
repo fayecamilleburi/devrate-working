@@ -9,7 +9,7 @@ import { DetailedReport } from '@/components/DetailedReport';
 
 
 const Landing = () => {
-    const { metrics, startSession, stopSession, recordKeystroke } = useCodeMetrics();
+    const { metrics, startSession, stopSession, recordKeystroke, computeMetrics } = useCodeMetrics();
     const [language, setLanguage] = useState<Language>('java');
     const [output, setOutput] = useState("");
     const reportRef = useRef<HTMLDivElement>(null);
@@ -107,7 +107,13 @@ const Landing = () => {
                         <CodeEditor 
                             onChange={setCode}
                             onKeystroke={recordKeystroke}
-                            onEditorReady={startSession}
+                            // Updated: Pass the computeMetrics function to the editor
+                            onComputeMetrics={computeMetrics} 
+                            // Updated: startSession now handles the initial document length via computeMetrics
+                            onEditorReady={(initialLength) => {
+                                startSession(); 
+                                computeMetrics(initialLength);
+                            }}
                             language={language}
                             onLanguageChange={setLanguage}
                         />
