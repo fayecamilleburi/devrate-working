@@ -7,7 +7,7 @@ interface CodeOutputProps {
 
 export function CodeOutput({ output }: CodeOutputProps) {
     return (
-        <div className="h-full flex flex-col rounded-lg border border-border bg-card overflow-hidden">
+        <div className="h-full flex flex-col rounded-lg border border-border bg-[#F0F8FF] overflow-hidden">
             <div className="flex items-center gap-2 px-4 py-2 border-b border-border bg-secondary/50">
                 <Terminal className="h-3.5 w-3.5 text-muted-foreground" />
                 <span className="text-xs font-mono text-muted-foreground">Output</span>

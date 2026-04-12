@@ -29,7 +29,7 @@ export const SubmitPanel = ({ isAnalyzing, onSubmit, results, onShowMore }: Subm
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-lg"
             >
                 {isAnalyzing ? (
-                    <div className="h-5 w-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <div className="h-5 w-5 border-2 border-white/[#F0F8FF] border-t-white rounded-full animate-spin" />
                 ) : (
                     <Send className="h-5 w-5" />
                 )}

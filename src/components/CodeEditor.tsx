@@ -94,7 +94,7 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
 
     return (
         <div className="h-full w-full rounded-lg border border-border overflow-hidden bg-card flex flex-col">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/50">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/[#F0F8FF]">
                 <span className="text-xs font-mono text-muted-foreground">Solution File</span>
                 <LanguageSwitcher language={language} onLanguageChange={onLanguageChange} />
             </div>
