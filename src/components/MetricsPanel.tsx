@@ -58,6 +58,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
 
             {/* --- MAIN ACTION BUTTON --- */}
             <button 
+                id="submit-button"
                 onClick={onSubmit} 
                 disabled={isAnalyzing} 
                 className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-md"

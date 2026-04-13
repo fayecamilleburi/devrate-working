@@ -3,6 +3,7 @@ import type { OnMount } from "@monaco-editor/react";
 import { useRef, useEffect } from "react";
 import * as monaco from "monaco-editor";
 import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
+import { runMonacoAutomatedTest } from "../utils/typer";
 
 interface CodeEditorProps {
     onChange: (value: string) => void;
@@ -13,31 +14,54 @@ interface CodeEditorProps {
     onLanguageChange: (lang: Language) => void;
 }
 
-const DEFAULT_CODE: Record<Language, string> = {
-    java: "public class Main {\n    public static void main(String[] args) {\n        System.out.println(\"Hello Java\");\n    }\n}",
-    python: "def main():\n    print(\"Hello Python\")",
-    cpp: "#include <iostream>\nint main() {\n    std::cout << \"Hello C++\";\n    return 0;\n}"
+// These will now appear as ghost text rather than actual document content
+const placeholder: Record<Language, string> = {
+    java: "// Write your Java class here...",
+    python: "# Write your Python code here...",
+    cpp: "// Write your C++ code here..."
 };
 
 export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetrics, language, onLanguageChange }: CodeEditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    
+    const startAutomatedTest = async (speed: number) => {
+    if (editorRef.current) {
+        const testCode = "public class Test {\n    public void hello() {\n        System.out.println(\"Verified\");\n    }\n}";
+        
+        // 1. Wait for the typing to finish
+        await runMonacoAutomatedTest(editorRef.current, testCode, speed);
+        
+        // 2. Small delay so the user can see the finished code before clicking
+        setTimeout(() => {
+            // 3. Find your "Analyze" or "Submit" button
+            // Replace 'analyze-button-id' with the actual ID or a class selector
+            const submitBtn = document.getElementById('submit-button') as HTMLButtonElement;
+            
+            if (submitBtn) {
+                console.log("Typing complete. Triggering analysis...");
+                submitBtn.click();
+            } else {
+                console.warn("Submit button not found. Make sure it has id='analyze-button'");
+            }
+        }, 500); 
+    }
+};
     const isPastePending = useRef(false);
     const disposables = useRef<monaco.IDisposable[]>([]);
 
     const handleMount: OnMount = (editor) => {
         editorRef.current = editor;
         
+        // telemetry starts at 0 because defaultValue is now ""
         const initialValue = editor.getValue();
         onChange(initialValue);
         onEditorReady(initialValue.length);
 
         // 1. KEYDOWN INTERCEPT
-        // Catches Ctrl+V/Cmd+V immediately to set the paste flag.
         const keyDownListener = editor.onKeyDown((e) => {
             const isPasteCommand = (e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KeyV;
             if (isPasteCommand) {
                 isPastePending.current = true;
-                // Keep the flag true for a brief window to ensure the change event captures it
                 setTimeout(() => {
                     isPastePending.current = false;
                 }, 100);
@@ -46,7 +70,6 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
         disposables.current.push(keyDownListener);
 
         // 2. OFFICIAL PASTE LISTENER
-        // Backup to catch pastes from the context menu or other editor commands.
         const pasteListener = editor.onDidPaste(() => {
             isPastePending.current = true;
             setTimeout(() => {
@@ -62,7 +85,6 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
             
             onChange(currentCode);
             
-            // Ignore undo/redo events in telemetry
             if (event.isUndoing || event.isRedoing) return; 
             
             event.changes.forEach((change) => {
@@ -70,7 +92,6 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
                 const isDeletion = change.rangeLength > 0;
 
                 if (isAddition) {
-                    // Logic: Now only uses the state set by keyboard/paste listeners
                     const type = isPastePending.current ? "paste" : "insert";
                     onKeystroke(type, change.text.length, change.range.startLineNumber);
                 } 
@@ -88,15 +109,30 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
     useEffect(() => {
         const currentDisposables = disposables.current;
         return () => {
-            // Clean up all Monaco listeners on unmount
             currentDisposables.forEach(d => d.dispose()); 
         };
     }, []);
 
     return (
         <div className="h-full w-full rounded-lg border border-border overflow-hidden bg-card flex flex-col">
-            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/[#F0F8FF]">
+            <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/50">
                 <span className="text-xs font-mono text-muted-foreground">Solution File</span>
+                {/* --- TEST BUTTONS --- */}
+                <div className="flex gap-2">
+                    <button 
+                        onClick={() => startAutomatedTest(20)} 
+                        className="text-[10px] bg-red-900/50 hover:bg-red-800 text-red-200 px-2 py-0.5 rounded border border-red-700 transition-colors"
+                    >
+                        TEST BOT (20ms)
+                    </button>
+                    <button 
+                        onClick={() => startAutomatedTest(200)} 
+                        className="text-[10px] bg-blue-900/50 hover:bg-blue-800 text-blue-200 px-2 py-0.5 rounded border border-blue-700 transition-colors"
+                    >
+                        TEST HUMAN (200ms)
+                    </button>
+                </div>
+                
                 <LanguageSwitcher language={language} onLanguageChange={onLanguageChange} />
             </div>
             <div className="flex-1">
@@ -105,11 +141,14 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
                     language={language}
                     theme="vs-dark"
                     onMount={handleMount}
-                    defaultValue={DEFAULT_CODE[language]}
+                    // IMPORTANT: Set this to empty to avoid skewing telemetry
+                    defaultValue="" 
                     options={{ 
                         automaticLayout: true, 
                         minimap: { enabled: false },
-                        scrollBeyondLastLine: false 
+                        scrollBeyondLastLine: false,
+                        // This applies the ghost text
+                        placeholder: placeholder[language] 
                     }}
                 />
             </div>
