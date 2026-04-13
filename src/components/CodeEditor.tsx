@@ -97,7 +97,7 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
             </div>
             <div className="flex-1">
                 <Editor
-                    height="100%"
+                    height="110%"
                     language={language}
                     theme="vs-dark"
                     onMount={handleMount}
