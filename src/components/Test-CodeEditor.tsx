@@ -3,6 +3,7 @@ import type { OnMount } from "@monaco-editor/react";
 import { useRef, useEffect } from "react";
 import * as monaco from "monaco-editor";
 import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
+import { runMonacoAutomatedTest } from "../utils/typer";
 
 interface CodeEditorProps {
     onChange: (value: string) => void;
@@ -22,6 +23,36 @@ const placeholder: Record<Language, string> = {
 
 export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetrics, language, onLanguageChange }: CodeEditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+    
+    const hasAutoStarted = useRef(false);
+    const startAutomatedTest = async (speed: number) => {
+        if (editorRef.current) {
+            const testCode = "public class Test {\n    public void hello() {\n        System.out.println(\"Verified\");\n    }\n}";
+            
+            await runMonacoAutomatedTest(editorRef.current, testCode, speed);
+            
+            setTimeout(() => {
+                const submitBtn = document.getElementById('submit-button') as HTMLButtonElement;
+                if (submitBtn) {
+                    submitBtn.click();
+                }
+            }, 500); 
+        }
+    };
+    useEffect(() => {
+        // We check every 100ms if the editor is ready
+        const checkEditorReady = setInterval(() => {
+            if (editorRef.current && !hasAutoStarted.current) {
+                hasAutoStarted.current = true; // Mark as started
+                clearInterval(checkEditorReady); // Stop checking
+                
+                console.log("Editor ready, starting initial automated test...");
+                startAutomatedTest(200); // Start with 'Human' speed on load
+            }
+        }, 100);
+
+        return () => clearInterval(checkEditorReady);
+    }, []);
     const isPastePending = useRef(false);
     const disposables = useRef<monaco.IDisposable[]>([]);
 
@@ -93,6 +124,8 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
         <div className="h-full w-full rounded-lg border border-border overflow-hidden bg-card flex flex-col">
             <div className="flex items-center justify-between px-4 py-2 border-b border-border bg-secondary/50">
                 <span className="text-xs font-mono text-muted-foreground">Solution File</span>
+
+                
                 <LanguageSwitcher language={language} onLanguageChange={onLanguageChange} />
             </div>
             <div className="flex-1">
