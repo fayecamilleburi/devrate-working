@@ -7,6 +7,7 @@ import { Shield } from 'lucide-react';
 import { type Language } from '@/components/LanguageSwitcher';
 import { DetailedReport } from '@/components/DetailedReport';
 import { BulkPage } from '@/components/BulkPage';
+import { SafetyNet } from '@/components/SafetyNet';
 const Landing = () => {
 
     const [view, setView] = useState<'editor' | 'dashboard'>('editor');
@@ -20,6 +21,7 @@ const Landing = () => {
     const [code, setCode] = useState(""); 
     const [analysisResult, setAnalysisResult] = useState<any>(null);
     const [isAnalyzing, setIsAnalyzing] = useState(false);
+    
    
     const scrollToReport = () => { 
         reportRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -50,6 +52,23 @@ const Landing = () => {
             setOutput(`[SYSTEM ERROR] Failed to connect to the execution engine.`);
         }
     };
+    
+    const handleSafetySwitch = (detectedLang: string) => {
+    // 1. Update the language (this triggers the editor's syntax change)
+    setLanguage(detectedLang as Language);
+    
+    // We just flip the mismatch flag to false.
+    setAnalysisResult((prev: any) => ({
+        ...prev,
+        safety_net: {
+            ...prev?.safety_net,
+            is_mismatch: false
+        }
+    }));
+
+    // 3. Log the change to the console output
+    setOutput((prev) => `${prev}\n[SYSTEM] Syntax mode updated to ${detectedLang.toUpperCase()}. Code preserved.`);
+};
 
     const handleFinalSubmit = async () => {
         stopSession();
@@ -81,7 +100,7 @@ const Landing = () => {
         setIsAnalyzing(false);
     }
     };
-
+    console.log("DEBUG SAFETY NET:", analysisResult?.safety_net);
     return (
     <div className="flex flex-col h-screen bg-background text-foreground">
         {/* Header - Stays visible on both pages */}
@@ -127,6 +146,7 @@ const Landing = () => {
                         {/* Editor Section */}
                         <div className="flex-1 min-h-[400px]">
                             <CodeEditor
+                                value={code}
                                 onChange={setCode}
                                 onKeystroke={recordKeystroke}
                                 onComputeMetrics={computeMetrics}
@@ -138,12 +158,23 @@ const Landing = () => {
                                 onLanguageChange={setLanguage}
                             />
                         </div>
+                        
+                        {/* SAFETY NET WRAPPER */}
+                        <div className="w-full shrink-0"> 
+                            <SafetyNet 
+                                isMismatch={!!analysisResult?.safety_net?.is_mismatch}
+                                warning={analysisResult?.safety_net?.warning}
+                                detectedLanguage={analysisResult?.safety_net?.detected_language}
+                                onLanguageChange={handleSafetySwitch}
+                            />
+                        </div>
 
                         {/* Console Output Section */}
                         <div className="h-48 shrink-0">
                             <CodeOutput output={output} />
                         </div>
 
+       
                         {/* Detailed Forensic Report */}
                         {analysisResult && (
                             <div ref={reportRef} className="pb-10">
@@ -164,6 +195,7 @@ const Landing = () => {
                             results={analysisResult}
                             metrics={metrics}
                             onShowMore={scrollToReport}
+                           
                         />
                     </div>
                 </>

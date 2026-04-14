@@ -18,7 +18,7 @@ interface CodeEditorProps {
 const placeholder: Record<Language, string> = {
     java: "// Write your Java class here...",
     python: "# Write your Python code here...",
-    cpp: "// Write your C++ code here..."
+    csharp: "// Write your C# code here..."
 };
 
 export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetrics, language, onLanguageChange }: CodeEditorProps) {

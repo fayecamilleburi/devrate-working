@@ -1,7 +1,7 @@
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
 import { Code2 } from "lucide-react";
 
-export type Language = "java" | "python" | "cpp";
+export type Language = "java" | "python" | "csharp";
 
 interface LanguageSwitcherProps {
     language: Language;
@@ -11,7 +11,7 @@ interface LanguageSwitcherProps {
 const LANGUAGES: { value: Language; label: string }[] = [
     { value: "java", label: "Java" },
     { value: "python", label: "Python" },
-    { value: "cpp", label: "C++" },
+    { value: "csharp", label: "C#" },
 ];
 
 export function LanguageSwitcher({ language, onLanguageChange }: LanguageSwitcherProps) {

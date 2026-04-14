@@ -96,6 +96,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
             {/* --- RESULTS AREA --- */}
             {results && (
                 <div className="bg-card border border-border rounded-2xl p-5 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+                   
                     {/* VERDICT BADGE */}
                     <div className={`flex items-center gap-3 p-4 rounded-xl border ${verdictStyle.border} ${verdictStyle.bg}`}>
                         {verdictStyle.icon}

@@ -5,22 +5,23 @@ import * as monaco from "monaco-editor";
 import { LanguageSwitcher, type Language } from "./LanguageSwitcher";
 
 interface CodeEditorProps {
+    value: string;
     onChange: (value: string) => void;
     onKeystroke: (type: "insert" | "delete" | "paste", length: number, lineNumber?: number) => void;
     onEditorReady: (initialLength: number) => void;
     onComputeMetrics: (currentLength: number) => void;
     language: Language;
     onLanguageChange: (lang: Language) => void;
+   
 }
 
-// These will now appear as ghost text rather than actual document content
 const placeholder: Record<Language, string> = {
     java: "// Write your Java class here...",
     python: "# Write your Python code here...",
-    cpp: "// Write your C++ code here..."
+    csharp: "// Write your C# code here..."
 };
 
-export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetrics, language, onLanguageChange }: CodeEditorProps) {
+export function CodeEditor({value, onChange, onKeystroke, onEditorReady, onComputeMetrics, language, onLanguageChange,  }: CodeEditorProps) {
     const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
     const isPastePending = useRef(false);
     const disposables = useRef<monaco.IDisposable[]>([]);
@@ -28,7 +29,10 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
     const handleMount: OnMount = (editor) => {
         editorRef.current = editor;
         
-        // telemetry starts at 0 because defaultValue is now ""
+        if (value) {
+        editor.setValue(value);
+    }
+        
         const initialValue = editor.getValue();
         onChange(initialValue);
         onEditorReady(initialValue.length);
@@ -38,9 +42,7 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
             const isPasteCommand = (e.ctrlKey || e.metaKey) && e.keyCode === monaco.KeyCode.KeyV;
             if (isPasteCommand) {
                 isPastePending.current = true;
-                setTimeout(() => {
-                    isPastePending.current = false;
-                }, 100);
+                setTimeout(() => { isPastePending.current = false; }, 100);
             }
         });
         disposables.current.push(keyDownListener);
@@ -48,9 +50,7 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
         // 2. OFFICIAL PASTE LISTENER
         const pasteListener = editor.onDidPaste(() => {
             isPastePending.current = true;
-            setTimeout(() => {
-                isPastePending.current = false;
-            }, 50);
+            setTimeout(() => { isPastePending.current = false; }, 50);
         });
         disposables.current.push(pasteListener);
 
@@ -58,7 +58,6 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
         const changeListener = editor.onDidChangeModelContent((event) => {
             const currentCode = editor.getValue();
             const currentLength = currentCode.length;
-            
             onChange(currentCode);
             
             if (event.isUndoing || event.isRedoing) return; 
@@ -71,23 +70,22 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
                     const type = isPastePending.current ? "paste" : "insert";
                     onKeystroke(type, change.text.length, change.range.startLineNumber);
                 } 
-                
                 if (isDeletion) {
                     onKeystroke("delete", change.rangeLength, change.range.startLineNumber);
                 }
             });
-
             onComputeMetrics(currentLength);
         });
         disposables.current.push(changeListener);
     };
 
+
     useEffect(() => {
-        const currentDisposables = disposables.current;
         return () => {
-            currentDisposables.forEach(d => d.dispose()); 
+            disposables.current.forEach(d => d.dispose());
+            disposables.current = []; // Reset for the next mount
         };
-    }, []);
+    }, [language]); // Depend on language to ensure cleanup during restart
 
     return (
         <div className="h-full w-full rounded-lg border border-border overflow-hidden bg-card flex flex-col">
@@ -97,17 +95,17 @@ export function CodeEditor({ onChange, onKeystroke, onEditorReady, onComputeMetr
             </div>
             <div className="flex-1">
                 <Editor
+                    value={value}
+                    key={language} // CRITICAL: Forces React to destroy and recreate the editor on language change
                     height="110%"
                     language={language}
                     theme="vs-dark"
                     onMount={handleMount}
-                    // IMPORTANT: Set this to empty to avoid skewing telemetry
                     defaultValue="" 
                     options={{ 
                         automaticLayout: true, 
                         minimap: { enabled: false },
                         scrollBeyondLastLine: false,
-                        // This applies the ghost text
                         placeholder: placeholder[language] 
                     }}
                 />
