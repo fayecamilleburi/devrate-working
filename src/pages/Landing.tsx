@@ -1,7 +1,7 @@
 import { useState, useRef} from 'react';
 import { CodeEditor } from '@/components/CodeEditor';
 import { CodeOutput } from '@/components/CodeOutput';
-import { MetricsPanel } from '@/components/MetricsPanel';
+import { MetricsPanel } from '@/components/AnalysisEngine';
 import { useCodeMetrics } from '@/hooks/useCodeMetrics';
 import { Shield } from 'lucide-react'; 
 import { type Language } from '@/components/LanguageSwitcher';
