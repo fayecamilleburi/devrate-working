@@ -3,6 +3,7 @@ import {
     Send, Activity, ShieldCheck, Play,
     ChevronDown, Clock, Fingerprint 
 } from 'lucide-react';
+import { SubmitModal } from '@/components/SubmitModal';
 
 interface MetricsPanelProps {
     isAnalyzing: boolean;
@@ -16,13 +17,18 @@ interface MetricsPanelProps {
 export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShowMore }: MetricsPanelProps) {
     // --- SESSION TIMER LOGIC ---
     const [seconds, setSeconds] = useState(0);
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
 
     useEffect(() => {
+        // If results exist, analysis is done; don't start/continue the timer.
+        if (results) return;
+
         const interval = setInterval(() => {
             setSeconds(prev => prev + 1);
         }, 1000);
+
         return () => clearInterval(interval);
-    }, []);
+    }, [results]);
 
     const formatTime = (totalSeconds: number) => {
         const mins = Math.floor(totalSeconds / 60);
@@ -68,7 +74,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
             <div className="space-y-3">
                 <button 
                     id="submit-button"
-                    onClick={onSubmit} 
+                    onClick={() => setShowConfirmModal(true)} 
                     disabled={isAnalyzing} 
                     className="w-full flex items-center justify-center gap-2 px-6 py-4 bg-[#B7D7EA] text-primary-foreground rounded-xl font-bold hover:opacity-90 disabled:opacity-50 transition-all shadow-md"
                 >
@@ -91,6 +97,13 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                         {formatTime(seconds)}
                     </span>
                 </div>
+
+                {/* Modal Implementation */}
+                <SubmitModal
+                    isOpen={showConfirmModal}
+                    onClose={() => setShowConfirmModal(false)}
+                    onConfirm={onSubmit}
+                />
             </div>
 
             {/* --- RESULTS AREA (STREMLINED & NO SHADOWS) --- */}
