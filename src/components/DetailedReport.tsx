@@ -146,8 +146,8 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
 
                     <div className="lg:col-span-2 space-y-6">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <DataCard label="AI Probability" value={aiPercent} icon={<Bot size={16}/>} color="text-red-500" bgColor="bg-red-500/5 border-red-500/10" />
-                            <DataCard label="Human Factor" value={humanPercent} icon={<User size={16} />} color="text-green-500" bgColor="bg-green-500/5 border-green-500/10" />
+                            <DataCard label="AI Probability" value={`${aiPercent}%`} icon={<Bot size={16}/>} color="text-red-500" bgColor="bg-red-500/5 border-red-500/10" />
+                            <DataCard label="Human Factor" value={`${humanPercent}%`} icon={<User size={16} />} color="text-green-500" bgColor="bg-green-500/5 border-green-500/10" />
                         </div>
 
                         <div className="p-6 bg-secondary/10 rounded-3xl border border-border/50 relative overflow-hidden">

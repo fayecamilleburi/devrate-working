@@ -1,7 +1,7 @@
 import { useState, useRef} from 'react';
 import { CodeEditor } from '@/components/CodeEditor';
 import { CodeOutput } from '@/components/CodeOutput';
-import { MetricsPanel } from '@/components/MetricsPanel';
+import { MetricsPanel } from '@/components/AnalysisEngine';
 import { useCodeMetrics } from '@/hooks/useCodeMetrics';
 import { Shield } from 'lucide-react'; 
 import { type Language } from '@/components/LanguageSwitcher';
@@ -151,7 +151,11 @@ const Landing = () => {
                                 onKeystroke={recordKeystroke}
                                 onComputeMetrics={computeMetrics}
                                 onEditorReady={(initialLength) => {
-                                    startSession();
+                                    // ONLY start if this is the very first time the editor loads
+                                    // If metrics.typingCadence > 0, we already have data we don't want to lose
+                                    if (metrics.typingCadence === 0 && metrics.pasteCount === 0) {
+                                        startSession();
+                                    }
                                     computeMetrics(initialLength);
                                 }}
                                 language={language}
