@@ -151,7 +151,11 @@ const Landing = () => {
                                 onKeystroke={recordKeystroke}
                                 onComputeMetrics={computeMetrics}
                                 onEditorReady={(initialLength) => {
-                                    startSession();
+                                    // ONLY start if this is the very first time the editor loads
+                                    // If metrics.typingCadence > 0, we already have data we don't want to lose
+                                    if (metrics.typingCadence === 0 && metrics.pasteCount === 0) {
+                                        startSession();
+                                    }
                                     computeMetrics(initialLength);
                                 }}
                                 language={language}
