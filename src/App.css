@@ -40,3 +40,21 @@
 .read-the-docs {
   color: #888;
 }
+
+/* Red highlight for high AI probability */
+.bg-ai-high {
+    background: rgba(255, 0, 0, 0.2) !important;
+    border-left: 4px solid #ef4444;
+}
+
+/* Yellow highlight for moderate likelihood */
+.bg-ai-med {
+    background: rgba(250, 204, 21, 0.1) !important;
+    border-left: 4px solid #facc15;
+}
+
+/* Optional: Icon in the left margin */
+.ai-warning-glyph {
+    background: url('your-warning-icon.svg') no-repeat center center;
+    background-size: contain;
+}

@@ -8,6 +8,8 @@ import { type Language } from '@/components/LanguageSwitcher';
 import { DetailedReport } from '@/components/DetailedReport';
 import { BulkPage } from '@/components/BulkPage';
 import { SafetyNet } from '@/components/SafetyNet';
+import { StaticCodeDisplay } from '@/components/StaticCodeDisplay';
+import { TokenHeatmap } from '@/components/TokenHeatmap'; // Update path as needed
 const Landing = () => {
 
     const [view, setView] = useState<'editor' | 'dashboard'>('editor');
@@ -41,6 +43,8 @@ const Landing = () => {
             });
 
             const data = await response.json();
+            console.log("Full Backend Response:", data); // Check if heatmap_data exists here
+            console.log("Heatmap Array:", data.heatmap_data);
 
             if (data.error) {
                 setOutput(`[ERROR]\n${data.error}`);
@@ -70,36 +74,49 @@ const Landing = () => {
     setOutput((prev) => `${prev}\n[SYSTEM] Syntax mode updated to ${detectedLang.toUpperCase()}. Code preserved.`);
 };
 
-    const handleFinalSubmit = async () => {
-        stopSession();
-        setIsAnalyzing(true);
-        try {
-        const response = await fetch("http://127.0.0.1:8000/analyze", {
+     const handleFinalSubmit = async () => {
+    stopSession();
+    setIsAnalyzing(true);
+    
+    // REPLACE THIS URL with your HF Direct URL + /analyze
+    const HF_API_URL = "http://127.0.0.1:8000/analyze";
+    console.log("Requesting URL:", HF_API_URL); // Debugging line
+
+    try {
+        const response = await fetch(HF_API_URL, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
+                filename: `submission.${language === 'python' ? 'py' : language === 'java' ? 'java' : 'cs'}`,
                 code: code,
-                language: language, 
-                telemetry: metrics
+                language: language.toLowerCase(),
+                telemetry: {
+                    typingCadence: metrics.typingCadence,
+                    burstPauseRatio: metrics.burstPauseRatio,
+                    revisionDensity: metrics.revisionDensity,
+                    pasteCount: metrics.pasteCount || 0,
+                    totalPastedChars: metrics.totalPastedChars || 0,
+                    originalityIndex: metrics.originalityIndex || 1.0
+                }
             }),
         });
 
         const data = await response.json();
         
-        if (!response.ok) {
-            // This helps you see EXACTLY which field failed validation
-            console.error("Validation Error:", data.detail);
-            return;
+        if (response.ok) {
+            setAnalysisResult(data);
+            setOutput(`[${new Date().toLocaleTimeString()}] Analysis Complete: ${data.verdict}`);
+        } else {
+            console.error("Server Error:", data);
+            setOutput(`[ERROR] ${data.detail || "Analysis failed"}`);
         }
-
-        setAnalysisResult(data);
-        setOutput(`[${new Date().toLocaleTimeString()}] Analysis Complete: ${data.verdict}`);
     } catch (error) {
         console.error("Connection Error:", error);
+        setOutput("[SYSTEM ERROR] Could not reach Hugging Face Space.");
     } finally {
         setIsAnalyzing(false);
     }
-    };
+};
     console.log("DEBUG SAFETY NET:", analysisResult?.safety_net);
     return (
     <div className="flex flex-col h-screen bg-background text-foreground">
@@ -177,6 +194,21 @@ const Landing = () => {
                         <div className="h-48 shrink-0">
                             <CodeOutput output={output} />
                         </div>
+
+                        {/* Forensic Analysis Section */}
+<div className="mt-4 shrink-0">
+    <StaticCodeDisplay 
+        code={code} 
+        language={language} 
+        // 1. Pass the heatmap array for the AI Detector
+        heatmapData={analysisResult?.heatmap_data} 
+        // 2. Pass the behavioral and safety net data for Telemetry/Fusion modes
+        metrics={{
+            behavioral_analysis: analysisResult?.behavioral_analysis,
+            safety_net: analysisResult?.safety_net
+        }}
+    />
+</div>
 
        
                         {/* Detailed Forensic Report */}

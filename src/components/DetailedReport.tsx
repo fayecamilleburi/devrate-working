@@ -57,6 +57,21 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
         fill: isSuspicious ? "#f59e0b" : "#3b82f6"
     };
 
+    // --- Dynamic Method Label Logic ---
+    const interpretation = results?.behavioral_analysis?.interpretation?.toLowerCase() || "";
+    
+    const getMethodLabel = () => {
+        if (isSuspicious || interpretation.includes("high-volume") || interpretation.includes("pasted")) {
+            return "High-Volume Insertion";
+        }
+        if (metrics.pasteCount > 0 || interpretation.includes("mixed") || interpretation.includes("external")) {
+            return "Mixed Manual/External";
+        }
+        return "Manual Construction";
+    };
+
+    const methodLabel = getMethodLabel();
+
     const behaviorFlags = results?.behavior_analysis?.flags || [];
     const revisionStatus = metrics.revisionDensity > 0.1 ? "refactored their work often" : "showed linear progress";
     const rhythmStatus = metrics.burstPauseRatio > 0.5 ? "a fluid rhythm" : "frequent interruptions";
@@ -92,7 +107,7 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
                 </div>
             </div>
 
-            {/* PILLAR 1: AI MODEL ANALYSIS (UPDATED TO ADAPTIVE UI) */}
+            {/* PILLAR 1: AI MODEL ANALYSIS */}
             <section className={`p-8 border rounded-[2.5rem] space-y-8 transition-all duration-500 ${p1Status.bg}`}>
                 <div className="flex items-center justify-between">
                     <div className={`flex items-center gap-3 border-l-4 pl-4 transition-colors duration-500 ${p1Status.border}`}>
@@ -178,7 +193,7 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
                 </div>
             </section>
 
-            {/* PILLAR 2: PROCESS ANALYSIS (ADAPTIVE UI) */}
+            {/* PILLAR 2: PROCESS ANALYSIS */}
             <section className={`p-8 border rounded-[2.5rem] space-y-8 transition-colors duration-500 ${p2Status.bg}`}>
                 <div className="flex items-center justify-between">
                     <div className={`flex items-center gap-3 border-l-4 pl-4 transition-colors duration-500 ${p2Status.border}`}>
@@ -222,7 +237,7 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
                             <div className="text-center">
                                 <p className="text-[9px] font-bold text-muted-foreground uppercase mb-1">Method</p>
                                 <p className={`text-xs font-bold transition-colors ${p2Status.accent}`}>
-                                    {isSuspicious ? "High-Volume Insertion" : "Manual Construction"}
+                                    {methodLabel}
                                 </p>
                             </div>
                         </div>
@@ -271,7 +286,7 @@ export const DetailedReport = ({ metrics, results }: DetailedReportProps) => {
     );
 };
 
-// --- SUB-COMPONENTS (UNTOUCHED LOGIC, UPDATED COLORS) ---
+// --- SUB-COMPONENTS ---
 const BehavioralLogItem = ({ label, value, description, icon, accentColor }: { label: string; value: string | number; description: string, icon: React.ReactNode, accentColor: string }) => {
     const [isOpen, setIsOpen] = useState(false);
     const isAmber = accentColor.includes('amber');
@@ -316,8 +331,6 @@ const BehavioralLogItem = ({ label, value, description, icon, accentColor }: { l
 
 const IndicatorItem = ({ label, score }: { label: string; score: number }) => {
     const [isOpen, setIsOpen] = useState(false);
-    
-    // Define the adaptive colors based on the score
     const isHighRisk = score > 0.6;
     const textColor = isHighRisk ? 'text-red-500' : 'text-green-500';
     const dotColor = isHighRisk ? 'bg-red-500 animate-pulse' : 'bg-green-500';
@@ -332,12 +345,9 @@ const IndicatorItem = ({ label, score }: { label: string; score: number }) => {
         <div className="border border-border/50 rounded-xl overflow-hidden bg-background shadow-sm">
             <button onClick={() => setIsOpen(!isOpen)} className="w-full flex items-center justify-between p-4 text-left hover:bg-secondary/5 transition-colors">
                 <div className="flex items-center gap-3">
-                    {/* The status dot is now using the dynamic dotColor */}
                     <div className={`h-2 w-2 rounded-full ${dotColor}`} />
                     <span className="text-xs font-bold">{label}</span>
                 </div>
-                
-                {/* --- ADAPTIVE COLOR SECTION --- */}
                 <div className="flex items-center gap-4">
                     <span className={`text-[10px] font-mono font-bold transition-colors duration-300 ${textColor}`}>
                         {(score * 100).toFixed(2)}% MATCH
@@ -347,7 +357,6 @@ const IndicatorItem = ({ label, score }: { label: string; score: number }) => {
                     </div>
                 </div>
             </button>
-            
             {isOpen && (
                 <div className="px-9 pb-4 animate-in slide-in-from-top-2">
                     <p className="text-[11px] leading-relaxed text-muted-foreground italic border-l-2 border-border pl-3">

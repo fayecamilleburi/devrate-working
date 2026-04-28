@@ -41,7 +41,7 @@ const FILE_TYPES = {
 };
 
 type LanguageKey = keyof typeof FILE_TYPES;
-const MAX_FILES = 20;
+const MAX_FILES = 500;
 
 export const BulkPage = () => {
     const [selectedLang, setSelectedLang] = useState<LanguageKey>('java');
@@ -55,6 +55,20 @@ export const BulkPage = () => {
 
    
     // --- DERIVED STATE ---
+    // --- DERIVED STATE ---
+
+    // 1. Calculate counts by filtering the results array
+    const aiFilesCount = bulkResults?.full_details?.filter(
+        (file: any) => file.ai_confidence_score > 0.5
+    ).length || 0;
+
+    const humanFilesCount = bulkResults?.full_details ? 
+        bulkResults.full_details.length - aiFilesCount : 0;
+
+    // 2. Calculate percentages for the progress bars
+    const totalFilesCount = bulkResults?.full_details?.length || 0;
+    const batchAiPercent = totalFilesCount > 0 ? (aiFilesCount / totalFilesCount) * 100 : 0;
+    const batchHumanPercent = totalFilesCount > 0 ? (humanFilesCount / totalFilesCount) * 100 : 0;
 
     const activeReport = (selectedFileIndex !== null && bulkResults) 
         ? bulkResults.full_details[selectedFileIndex] 
@@ -66,10 +80,6 @@ export const BulkPage = () => {
 
     // Batch-wide stats (Pillar 0) - Pulling directly from Backend Summary
     const totalFiles = bulkResults?.summary?.total_files_processed || files.length;
-    const aiFilesCount = bulkResults?.summary?.ai_detected_count || 0;
-    const humanFilesCount = bulkResults?.summary?.human_detected_count || 0;
-    const batchAiPercent = bulkResults?.summary?.batch_ai_percent || 0;
-    const batchHumanPercent = bulkResults?.summary?.batch_human_percent || 0;
     // --- LOGIC ---
 
     const handleFiles = (incomingFiles: File[]) => {
@@ -110,7 +120,11 @@ export const BulkPage = () => {
 
             const formattedFiles = await Promise.all(fileDataPromises);
 
-            const response = await fetch("http://127.0.0.1:8000/analyze/bulk/", {
+             // REPLACE THIS URL with your HF Direct URL + /analyze
+            const HF_API_URL = "https://devrate-devratev1.hf.space/analyze/bulk";
+   
+
+            const response = await fetch(HF_API_URL, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ files: formattedFiles }),
@@ -380,10 +394,10 @@ export const BulkPage = () => {
                                                 >
                                                     <div className={`flex flex-col-reverse w-12 h-64 rounded-xl overflow-hidden border transition-all ${isSelected ? 'border-primary ring-2 ring-primary/20 shadow-xl' : 'border-border/20 shadow-lg'}`}>
                                                         <div className="bg-red-500 transition-all duration-1000 ease-out relative" style={{ height: `${aiVal}%` }}>
-                                                            {aiVal > 20 && <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white rotate-90">{aiVal}%</span>}
+                                                            {aiVal > 500 && <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white rotate-90">{aiVal}%</span>}
                                                         </div>
                                                         <div className="bg-green-500 transition-all duration-1000 ease-out relative" style={{ height: `${humanVal}%` }}>
-                                                            {humanVal > 20 && <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white rotate-90">{humanVal}%</span>}
+                                                            {humanVal > 500 && <span className="absolute inset-0 flex items-center justify-center text-[9px] font-bold text-white rotate-90">{humanVal}%</span>}
                                                         </div>
                                                     </div>
                                                     <span className={`text-[10px] font-bold truncate max-w-[80px] ${isSelected ? 'text-primary' : 'text-muted-foreground'}`}>{res.filename}</span>
