@@ -42,18 +42,39 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
     const isHighRisk = fusionScore > 0.6;
     const aiPercentNumeric = fusionScore * 100;
 
-    const adaptiveStyle = {
-        accent: isHighRisk ? "text-red-500" : "text-green-500",
-        border: isHighRisk ? "border-red-500/30" : "border-green-500/20",
-        bg: isHighRisk 
-            ? "bg-linear-to-b from-red-500/5 to-transparent" 
-            : "bg-linear-to-b from-green-500/5 to-transparent",
-        badge: isHighRisk 
-            ? "bg-red-500/10 border-red-500/20 text-red-600" 
-            : "bg-green-500/10 border-green-500/20 text-green-600",
-        fill: isHighRisk ? "#ef4444" : "#22c55e"
+    const getTheme = (score: number) => {
+        if (score >= 0.85) return { 
+            accent: "text-red-500", 
+            border: "border-red-500/30", 
+            bg: "bg-linear-to-b from-red-500/5 to-transparent", 
+            badge: "bg-red-500/10 border-red-500/20 text-red-600", 
+            fill: "#ef4444" 
+        };
+        if (score >= 0.60) return { 
+            accent: "text-orange-500", 
+            border: "border-orange-500/30", 
+            bg: "bg-linear-to-b from-orange-500/5 to-transparent", 
+            badge: "bg-orange-500/10 border-orange-500/20 text-orange-600", 
+            fill: "#f97316" 
+        };
+        if (score >= 0.40) return { 
+            accent: "text-yellow-500", 
+            border: "border-yellow-500/30", 
+            bg: "bg-linear-to-b from-yellow-500/5 to-transparent", 
+            badge: "bg-yellow-500/10 border-yellow-500/20 text-yellow-600", 
+            fill: "#eab308" 
+        };
+        return { 
+            accent: "text-green-500", 
+            border: "border-green-500/20", 
+            bg: "bg-linear-to-b from-green-500/5 to-transparent", 
+            badge: "bg-green-500/10 border-green-500/20 text-green-600", 
+            fill: "#22c55e" 
+        };
     };
 
+    const adaptiveStyle = getTheme(fusionScore);
+    
     return (
         <div className="flex flex-col gap-4 h-full overflow-y-auto pr-1">
             {/* --- HEADER SECTION --- */}
@@ -115,7 +136,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                     <div className="flex items-center justify-between border-b border-border/50 pb-4">
                         <div className="flex items-center gap-3">
                             <div className={`p-2 rounded-lg ${adaptiveStyle.badge}`}>
-                                {isHighRisk ? <Fingerprint size={18} /> : <ShieldCheck size={18} />}
+                                {fusionScore >= 0.6 ? <Fingerprint size={18} /> : <ShieldCheck size={18} />}
                             </div>
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">Engine Verdict</p>
@@ -126,7 +147,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                         </div>
                     </div>
 
-                    {/* ADAPTIVE PROGRESS CIRCLE */}
+                    {/* ADAPTIVE PROGRESS CIRCLE (UNROUNDED) */}
                     <div className="relative h-40 w-40 mx-auto">
                         <svg className="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="42" fill="none" stroke={adaptiveStyle.fill} strokeWidth="8" className="opacity-10" />
@@ -151,7 +172,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                         </div>
                     </div>
 
-                    {/* EVIDENCE LOGS */}
+                    {/* EVIDENCE LOGS (UNROUNDED) */}
                     <div className="space-y-3">
                         <h5 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground ml-1">DNA Indicators</h5>
                         <div className="grid gap-2">
@@ -160,7 +181,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                                     <div key={i} className="flex items-center justify-between p-2.5 bg-background/50 border border-border/50 rounded-xl">
                                         <span className="text-[10px] font-bold text-foreground">{item.token}</span>
                                         <span className={`text-[10px] font-mono font-bold ${adaptiveStyle.accent}`}>
-                                            +{(item.score * 100).toFixed(0)}% MATCH
+                                            +{(item.score * 100).toFixed(2)}% MATCH
                                         </span>
                                     </div>
                                 ))
@@ -173,8 +194,8 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                             )}
                             
                             {/* BEHAVIORAL INTERPRETATION */}
-                            <div className={`p-3 rounded-xl border flex items-start gap-3 transition-colors ${isHighRisk ? 'bg-amber-500/5 border-amber-500/10' : 'bg-blue-500/5 border-blue-500/10'}`}>
-                                <Activity className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${isHighRisk ? 'text-amber-500' : 'text-blue-500'}`} />
+                            <div className={`p-3 rounded-xl border flex items-start gap-3 transition-colors ${fusionScore >= 0.4 ? 'bg-amber-500/5 border-amber-500/10' : 'bg-blue-500/5 border-blue-500/10'}`}>
+                                <Activity className={`h-3.5 w-3.5 mt-0.5 shrink-0 ${fusionScore >= 0.4 ? 'text-amber-500' : 'text-blue-500'}`} />
                                 <p className="text-[10px] leading-relaxed font-medium text-foreground/80 italic">
                                     {results.behavioral_analysis?.interpretation || "Organic behavior patterns observed."}
                                 </p>
