@@ -37,9 +37,10 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
     };
 
     // --- ADAPTIVE UI LOGIC ---
-    const rawScore = results?.fusion_score ?? 0;
-    const isHighRisk = rawScore > 0.6;
-    const aiPercentNumeric = rawScore * 100;
+    const fusionScore = results?.fusion_score ?? 0;
+    const fusionVerdict = results?.fusion_verdict || results?.verdict || "PENDING";
+    const isHighRisk = fusionScore > 0.6;
+    const aiPercentNumeric = fusionScore * 100;
 
     const adaptiveStyle = {
         accent: isHighRisk ? "text-red-500" : "text-green-500",
@@ -119,7 +120,7 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                             <div>
                                 <p className="text-[10px] font-black uppercase tracking-widest opacity-60 leading-none mb-1">Engine Verdict</p>
                                 <h4 className={`text-lg font-black uppercase tracking-tighter leading-none ${adaptiveStyle.accent}`}>
-                                    {results.verdict || "PENDING"}
+                                    {fusionVerdict}
                                 </h4>
                             </div>
                         </div>
@@ -141,8 +142,8 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
                             />
                         </svg>
                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                            <span className="text-4xl font-black tracking-tighter text-foreground tabular-nums">
-                                {Math.round(aiPercentNumeric)}%
+                            <span className="text-3xl font-black tracking-tighter text-foreground tabular-nums">
+                                {(fusionScore * 100).toFixed(2)}%
                             </span>
                             <span className={`text-[9px] font-black uppercase tracking-[0.2em] mt-1 ${adaptiveStyle.accent}`}>
                                 Risk Level
