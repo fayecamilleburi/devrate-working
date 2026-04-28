@@ -39,7 +39,6 @@ export function MetricsPanel({ isAnalyzing, onSubmit, onCompile, results, onShow
     // --- ADAPTIVE UI LOGIC ---
     const fusionScore = results?.fusion_score ?? 0;
     const fusionVerdict = results?.fusion_verdict || results?.verdict || "PENDING";
-    const isHighRisk = fusionScore > 0.6;
     const aiPercentNumeric = fusionScore * 100;
 
     const getTheme = (score: number) => {
