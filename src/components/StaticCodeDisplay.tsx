@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Code2, Flame, AlertTriangle, Zap, Layers, Activity, ShieldCheck } from 'lucide-react';
+import { Flame, AlertTriangle, Zap, Layers, Activity, ShieldCheck } from 'lucide-react';
 
 interface HeatmapLine {
   line: number;
